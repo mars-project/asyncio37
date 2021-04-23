@@ -48,7 +48,7 @@ setup(
         "Topic :: Software Development :: Libraries",
     ],
     url="https://github.com/mars-project/asyncio37",
-    packages=[""],
+    packages=["", "asyncio"],
     package_dir={"": "src"},
     package_data={"": ["*.pth"]},
     ext_modules=[asyncio_mod],
