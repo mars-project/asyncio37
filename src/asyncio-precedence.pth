@@ -1,0 +1,1 @@
+import os, site, sys; old_path = sys.path; sys.path = site.getsitepackages() + sys.path; enabled = bool(int(os.environ.get('USE_BUILTIN_ASYNCIO', '0'))); enabled or [__import__(pack) for pack in ('asyncio.coroutines', 'asyncio.constants', 'asyncio.events', 'asyncio.queues', 'asyncio.streams')]; sys.path = old_path;
