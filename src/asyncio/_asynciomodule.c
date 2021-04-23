@@ -209,10 +209,15 @@ get_future_loop(PyObject *fut)
         return loop;
     }
 
-    if (_PyObject_LookupAttrId(fut, &PyId_get_loop, &getloop) < 0) {
+    /* if (_PyObject_LookupAttrId(fut, &PyId_get_loop, &getloop) < 0) {
         return NULL;
-    }
-    if (getloop != NULL) {
+    } */
+    getloop = _PyObject_GetAttrId(fut, &PyId_get_loop);
+    if (getloop == NULL) {
+        if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+            return NULL;
+        PyErr_Clear();
+    } else {
         PyObject *res = _PyObject_CallNoArg(getloop);
         Py_DECREF(getloop);
         return res;
@@ -228,7 +233,7 @@ get_running_loop(PyObject **loop)
     PyObject *rl;
 
     PyThreadState *ts = PyThreadState_Get();
-    // As unique ID of PyThreadState not implemented in Python 3.6,
+    // 7TO6: As unique ID of PyThreadState not implemented in Python 3.6,
     // we cannot utilize caching mechanism for it.
     /* if (ts->id == cached_running_holder_tsid && cached_running_holder != NULL) {
         // Fast path, check the cache.
@@ -250,6 +255,7 @@ get_running_loop(PyObject **loop)
             }
         }
 
+    // 7TO6: End of PyThreadState compatibility
     /*    cached_running_holder = rl;  // borrowed
         cached_running_holder_tsid = ts->id;
     }*/
@@ -503,7 +509,8 @@ future_init(FutureObj *fut, PyObject *loop)
     if (is_true < 0) {
         return -1;
     }
-    if (is_true && !_Py_IsFinalizing()) {
+    // 7TO6: _Py_IsFinalizing -> _PyFinalizing
+    if (is_true && !_Py_Finalizing) {
         /* Only try to capture the traceback if the interpreter is not being
            finalized.  The original motivation to add a `_Py_IsFinalizing()`
            call was to prevent SIGSEGV when a Future is created in a __del__
@@ -904,7 +911,8 @@ _asyncio_Future_add_done_callback_impl(FutureObj *self, PyObject *fn,
                                        PyObject *context)
 /*[clinic end generated code: output=7ce635bbc9554c1e input=15ab0693a96e9533]*/
 {
-    if (context == NULL) {
+    // 7TO6: Ignore context as is implemented in pure Python
+    /* if (context == NULL) {
         context = PyContext_CopyCurrent();
         if (context == NULL) {
             return NULL;
@@ -912,7 +920,7 @@ _asyncio_Future_add_done_callback_impl(FutureObj *self, PyObject *fn,
         PyObject *res = future_add_done_callback(self, fn, context);
         Py_DECREF(context);
         return res;
-    }
+    } */
     return future_add_done_callback(self, fn, context);
 }
 
@@ -1713,7 +1721,8 @@ static PyObject *
 TaskStepMethWrapper_call(TaskStepMethWrapper *o,
                          PyObject *args, PyObject *kwds)
 {
-    if (kwds != NULL && PyDict_GET_SIZE(kwds) != 0) {
+    // 7TO6: PyDict_GET_SIZE -> PyDict_Size
+    if (kwds != NULL && PyDict_Size(kwds) != 0) {
         PyErr_SetString(PyExc_TypeError, "function takes no keyword arguments");
         return NULL;
     }
@@ -1789,7 +1798,8 @@ TaskWakeupMethWrapper_call(TaskWakeupMethWrapper *o,
 {
     PyObject *fut;
 
-    if (kwds != NULL && PyDict_GET_SIZE(kwds) != 0) {
+    // 7TO6: PyDict_GET_SIZE -> PyDict_Size
+    if (kwds != NULL && PyDict_Size(kwds) != 0) {
         PyErr_SetString(PyExc_TypeError, "function takes no keyword arguments");
         return NULL;
     }
@@ -1984,10 +1994,11 @@ _asyncio_Task___init___impl(TaskObj *self, PyObject *coro, PyObject *loop)
         return -1;
     }
 
-    Py_XSETREF(self->task_context, PyContext_CopyCurrent());
+    // 7TO6: Ignore context as is implemented in pure Python
+    /* Py_XSETREF(self->task_context, PyContext_CopyCurrent());
     if (self->task_context == NULL) {
         return -1;
-    }
+    } */
 
     Py_CLEAR(self->task_fut_waiter);
     self->task_must_cancel = 0;

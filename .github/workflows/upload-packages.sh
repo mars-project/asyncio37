@@ -52,7 +52,7 @@ else
   ls dist/
   echo ""
 
-  if [[ "$GITHUB_REPOSITORY" == "mars-project/shared_memory38" ]]; then
+  if [[ "$GITHUB_REPOSITORY" == "mars-project/asyncio37" ]]; then
     PYPI_REPO="https://upload.pypi.org/legacy/"
   else
     PYPI_REPO="https://test.pypi.org/legacy/"
