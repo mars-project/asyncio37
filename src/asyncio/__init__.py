@@ -22,7 +22,7 @@ from .transports import *
 # Task.all_tasks() method.  This function will be removed in 3.9.
 from .tasks import _all_tasks_compat  # NoQA
 
-__all__ = ('__version__' +
+__all__ = (('__version__',) +
            base_events.__all__ +
            coroutines.__all__ +
            events.__all__ +
