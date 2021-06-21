@@ -334,7 +334,7 @@ _PyTask = Task
 
 
 try:
-    import _asyncio
+    from . import _asyncio
 except ImportError:
     pass
 else:
@@ -888,9 +888,9 @@ _py_leave_task = _leave_task
 
 
 try:
-    from _asyncio import (_register_task, _unregister_task,
-                          _enter_task, _leave_task,
-                          _all_tasks, _current_tasks)
+    from ._asyncio import (_register_task, _unregister_task,
+                           _enter_task, _leave_task,
+                           _all_tasks, _current_tasks)
 except ImportError:
     pass
 else:

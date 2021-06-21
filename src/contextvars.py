@@ -125,7 +125,8 @@ class ContextVar(metaclass=ContextVarMeta):
         except KeyError:
             old_value = Token.MISSING
 
-        updated_data = data.set(self, value)
+        updated_data = data.copy()
+        updated_data[self] = value
         ctx._data = updated_data
         return Token(ctx, self, old_value)
 
@@ -145,7 +146,8 @@ class ContextVar(metaclass=ContextVarMeta):
         if token._old_value is Token.MISSING:
             ctx._data = ctx._data.delete(token._var)
         else:
-            ctx._data = ctx._data.set(token._var, token._old_value)
+            ctx._data = ctx._data.copy()
+            ctx._data[token._var] = token._old_value
 
         token._used = True
 
@@ -198,7 +200,15 @@ def copy_context():
 
 
 def _get_context():
-    ctx = getattr(_state, 'context', None)
+    import asyncio.tasks
+    try:
+        task = asyncio.tasks.current_task()
+        ctx = getattr(task, '_task_context', None)
+    except RuntimeError:
+        ctx = None
+
+    if ctx is None:
+        ctx = getattr(_state, 'context', None)
     if ctx is None:
         ctx = Context()
         _state.context = ctx
