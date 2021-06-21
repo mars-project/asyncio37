@@ -716,6 +716,34 @@ future_cancel(FutureObj *fut)
     Py_RETURN_TRUE;
 }
 
+// 7TO6: This method replaces built-in API PyContext_CopyContext
+// from Python >= 3.7 by running contextvars.copy_context() 
+// from a Python module.
+static PyObject *
+copy_context()
+{
+    PyObject *empty_tuple = PyTuple_New(0);
+
+    PyObject *contextvars_lib = PyImport_ImportModule("contextvars");
+    if (contextvars_lib == NULL) {
+        Py_DECREF(empty_tuple);
+        return NULL;
+    }
+    PyObject *copy_context_fun = PyObject_GetAttrString(contextvars_lib, "copy_context");
+    if (copy_context_fun == NULL) {
+        Py_DECREF(empty_tuple);
+        Py_DECREF(contextvars_lib);
+        return NULL;
+    }
+    PyObject *context = PyObject_Call(copy_context_fun, empty_tuple, NULL);
+
+    Py_DECREF(empty_tuple);
+    Py_DECREF(copy_context_fun);
+    Py_DECREF(contextvars_lib);
+
+    return context;
+}
+
 /*[clinic input]
 _asyncio.Future.__init__
 
@@ -911,16 +939,17 @@ _asyncio_Future_add_done_callback_impl(FutureObj *self, PyObject *fn,
                                        PyObject *context)
 /*[clinic end generated code: output=7ce635bbc9554c1e input=15ab0693a96e9533]*/
 {
-    // 7TO6: Ignore context as is implemented in pure Python
-    /* if (context == NULL) {
-        context = PyContext_CopyCurrent();
+    if (context == NULL) {
+        // 7TO6: Use pure-Python version of copy_context
+        /* context = PyContext_CopyCurrent(); */
+        context = copy_context();
         if (context == NULL) {
             return NULL;
         }
         PyObject *res = future_add_done_callback(self, fn, context);
         Py_DECREF(context);
         return res;
-    } */
+    }
     return future_add_done_callback(self, fn, context);
 }
 
@@ -1994,11 +2023,12 @@ _asyncio_Task___init___impl(TaskObj *self, PyObject *coro, PyObject *loop)
         return -1;
     }
 
-    // 7TO6: Ignore context as is implemented in pure Python
-    /* Py_XSETREF(self->task_context, PyContext_CopyCurrent());
+    // 7TO6: Use pure-Python version of copy_context
+    /* Py_XSETREF(self->task_context, PyContext_CopyCurrent()); */
+    Py_XSETREF(self->task_context, copy_context());
     if (self->task_context == NULL) {
         return -1;
-    } */
+    }
 
     Py_CLEAR(self->task_fut_waiter);
     self->task_must_cancel = 0;
@@ -2086,6 +2116,18 @@ TaskObj_get_fut_waiter(TaskObj *task, void *Py_UNUSED(ignored))
     if (task->task_fut_waiter) {
         Py_INCREF(task->task_fut_waiter);
         return task->task_fut_waiter;
+    }
+
+    Py_RETURN_NONE;
+}
+
+// 7TO6: Expose task context to Python modules
+static PyObject *
+TaskObj_get_task_context(TaskObj *task, void *Py_UNUSED(ignored))
+{
+    if (task->task_context) {
+        Py_INCREF(task->task_context);
+        return task->task_context;
     }
 
     Py_RETURN_NONE;
@@ -2433,6 +2475,7 @@ static PyGetSetDef TaskType_getsetlist[] = {
     {"_must_cancel", (getter)TaskObj_get_must_cancel, NULL, NULL},
     {"_coro", (getter)TaskObj_get_coro, NULL, NULL},
     {"_fut_waiter", (getter)TaskObj_get_fut_waiter, NULL, NULL},
+    {"_task_context", (getter)TaskObj_get_task_context, NULL, NULL},  // 7TO6: Expose _task_context
     {NULL} /* Sentinel */
 };
 

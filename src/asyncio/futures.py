@@ -382,7 +382,7 @@ def wrap_future(future, *, loop=None):
 
 
 try:
-    import _asyncio
+    from . import _asyncio
 except ImportError:
     pass
 else:
